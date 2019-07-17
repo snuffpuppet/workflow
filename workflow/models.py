@@ -1,5 +1,6 @@
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db import models
+from django.db.models import Q
 
 
 class ActionClass(models.Model):
@@ -66,8 +67,11 @@ class Activity(models.Model):
         return self.tasksequence_set.all().order_by('sequence').select_related('task')
 
     def tasks(self):
-        return Task.objects.filter(tasksequence__activity=self).order_by('tasksequence__sequence')
-        #return self.tasksequence_set.all().order_by('sequence')
+        in_this_activity = Q(tasksequence__activity=self)
+        return Task.objects.filter(in_this_activity).order_by('tasksequence__sequence')
+
+    # def tasks(self):
+    #     return Task.objects.filter(tasksequence__activity=self).order_by('tasksequence__sequence')
 
     action = models.ForeignKey(Action, on_delete=models.CASCADE)
     summary = models.CharField(max_length=200)
@@ -146,6 +150,18 @@ class ProviderTask(models.Model):
 class ProviderChoiceTask(models.Model):
     def __str__(self):
         return f'Engage Service Provider ({self.action.name})'
+
+    def get_provider_task(self, provider, service_type):
+
+        action_match = Q(providertask__action=self.action)
+        service_type_match = Q(providertask__provider_service_type__service_type=service_type)
+        provider_match = Q(providertask__provider_service_type__provider=provider)
+        tasks = Task.objects.filter(action_match & service_type_match & provider_match)
+        if len(tasks) > 1:
+            raise MultipleObjectsReturned(f'One ProviderTask expected for {self.action} {provider} {service_type}')
+        if len(tasks) == 0:
+            return None
+        return tasks[0]
 
     task = models.OneToOneField(Task, on_delete=models.CASCADE, primary_key=True)
     #heading = models.CharField(max_length=50)

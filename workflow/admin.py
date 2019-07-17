@@ -7,6 +7,7 @@ from pagedown.widgets import AdminPagedownWidget
 from .models import Action, ActionClass, Activity, ServiceType, Provider, ProviderServiceType, Task, TaskSequence, \
     ProviderTask, AdminTask, ProviderChoiceTask
 
+
 # from workflow.models import Action, ActionClass, Activity, ServiceType, Provider, ProviderServiceType, Task, TaskSequence, ProviderTask, AdminTask, ProviderChoiceTask
 
 
@@ -45,7 +46,6 @@ class TaskListFilter(admin.SimpleListFilter):
 
         return static_choices + service_type_choices + provider_choices
 
-
     def queryset(self, request, queryset):
         if self.value() == 'admin':
             return queryset.filter(admintask__pk__isnull=False)
@@ -55,14 +55,16 @@ class TaskListFilter(admin.SimpleListFilter):
             return queryset.filter(providerchoicetask__pk__isnull=False)
 
         """ process provider and service type based filters """
-        filter_type = self.value()[:2]
-        filter_by = self.value()[3:]
+        if self.value():
+            filter_type = self.value()[:2]
+            filter_by = self.value()[3:]
 
-        if filter_type == 'st':
-            return queryset.filter(providertask__provider_service_type__service_type__name=filter_by)
+            if filter_type == 'st':
+                return queryset.filter(providertask__provider_service_type__service_type__name=filter_by)
 
-        if filter_type == 'pv':
-            return queryset.filter(providertask__provider_service_type__provider__name=filter_by)
+            if filter_type == 'pv':
+                return queryset.filter(providertask__provider_service_type__provider__name=filter_by)
+
 
 class TaskAdmin(admin.ModelAdmin):
     inlines = [ProviderTaskInline, AdminTaskInline, ProviderChoiceTaskInline]

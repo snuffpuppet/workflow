@@ -9,6 +9,14 @@
 <body>
 <h2>OTW Workflow</h2>
 <h3>Work Instructions for Provisioning</h3>
+
+<form action="{% url 'activity' %}" method="get">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit">
+</form>
+
+{% comment %}
 <ul>
     {% for ac in action_class_list %}
         <li>
@@ -21,5 +29,6 @@
         </li>
     {% endfor %}
 </ul>
+{% endcomment %}
 </body>
 </html>
