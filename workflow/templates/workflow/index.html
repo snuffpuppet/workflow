@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OTW Workflow</title>
+</head>
+{% load debug_tags %}
+
+<body>
+<h2>OTW Workflow</h2>
+<h3>Work Instructions for Provisioning</h3>
+<ul>
+    {% for ac in action_class_list %}
+        <li>
+            <h4>{{ac.name}}</h4>
+            {% for activity in ac.related_activities %}
+                <ul>
+                    <a href="{% url 'activity' activity.id %}">{{activity.name}}</a>
+                </ul>
+            {% endfor %}
+        </li>
+    {% endfor %}
+</ul>
+</body>
+</html>

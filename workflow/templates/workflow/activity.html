@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Activity</title>
+</head>
+{% load debug_tags %}
+<body>
+    <h2>{{ activity.name }}</h2>
+    <p>{{ activity.summary }}</p>
+    <h3>Tasks:</h3>
+    <ol>
+        {% for task in activity.tasks %}
+            <li>
+                {{ task.name }}
+                {% if task.has_instructions %}
+                    <p>{{ task.instructions }}</p>
+                {% elif task.is_choice_task %}
+                    <ul>
+                        {% for task in task.choices %}
+                            <li>
+                                {{ task.name }}
+                                <p>{{ task.instructions }}</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No instructions or choices found</p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</body>
+</html>

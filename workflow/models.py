@@ -1,7 +1,4 @@
-from collections import namedtuple
-
-
-
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
 
@@ -9,6 +6,16 @@ class ActionClass(models.Model):
     """ Provide, Change, Cancel """
     def __str__(self):
         return self.name
+
+    def related_activities(self):
+        #return Action.objects.filter(action_class=self)
+        #return Activity.objects.all()
+        return Activity.objects.filter(action__action_class=self)
+        #actions = self.action_set.filter(activity__id__gte=0)
+        #return actions[0].activity_set.all()
+        # return [activity
+        #         for action in self.action_set.all()
+        #         for activity in action.activity_set.all()]
 
     name = models.CharField(max_length=50)
 
@@ -52,20 +59,66 @@ class Activity(models.Model):
     def __str__(self):
         return self.action.__str__()
 
+    def name(self):
+        return self.action.name
+
+    def task_sequence(self):
+        return self.tasksequence_set.all().order_by('sequence').select_related('task')
+
+    def tasks(self):
+        return Task.objects.filter(tasksequence__activity=self).order_by('tasksequence__sequence')
+        #return self.tasksequence_set.all().order_by('sequence')
+
     action = models.ForeignKey(Action, on_delete=models.CASCADE)
     summary = models.CharField(max_length=200)
 
 
 class Task(models.Model):
     def __str__(self):
-        if hasattr(self, 'admintask'):
+        return self.name()
+
+    def is_admin_task(self):
+        return hasattr(self, 'admintask')
+
+    def is_provider_task(self):
+        return hasattr(self, 'providertask')
+
+    def is_provider_choice_task(self):
+        return hasattr(self, 'providerchoicetask')
+
+    def is_choice_task(self):
+        return self.is_provider_choice_task()
+
+    def has_instructions(self):
+        return self.is_admin_task() or self.is_provider_task()
+
+    def instructions(self):
+        if self.is_admin_task():
+            return self.admintask.instructions
+        elif self.is_provider_task():
+            return self.providertask.instructions
+        else:
+            raise ObjectDoesNotExist(f'Task {self.name} does not have instructions')
+
+    def choices(self):
+        if self.is_provider_choice_task():
+            action = self.providerchoicetask.action
+            return ProviderTask.objects.all().filter(action=action)
+        else:
+            ObjectDoesNotExist(f'Task {self.name} does not have task choices')
+
+    def name(self):
+        if self.is_admin_task():
             return self.admintask.__str__()
-        elif hasattr(self, 'providertask'):
+        elif self.is_provider_task():
             return self.providertask.__str__()
-        elif hasattr(self, 'providerchoicetask'):
+        elif self.is_provider_choice_task():
             return self.providerchoicetask.__str__()
         else:
             return f'{self.pk}'
+
+    #class Meta:
+    #    abstract = True
 
 
 class AdminTask(models.Model):
@@ -79,6 +132,9 @@ class AdminTask(models.Model):
 
 class ProviderTask(models.Model):
     def __str__(self):
+        return self.name()
+
+    def name(self):
         return f'{self.action.name} {self.provider_service_type.__str__()}'
 
     task = models.OneToOneField(Task, on_delete=models.CASCADE, primary_key=True)

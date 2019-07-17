@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'workflow.apps.WorkflowConfig',
     'pagedown',
+    'template_debug',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
