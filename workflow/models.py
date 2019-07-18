@@ -49,6 +49,9 @@ class Provider(models.Model):
 class ProviderServiceType(models.Model):
     """ Link Service Providers to the types of service they provide """
     def __str__(self):
+        return self.name()
+
+    def name(self):
         return self.provider.name + " " + self.service_type.name
 
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE)
@@ -66,12 +69,27 @@ class Activity(models.Model):
     def task_sequence(self):
         return self.tasksequence_set.all().order_by('sequence').select_related('task')
 
-    def tasks(self):
-        in_this_activity = Q(tasksequence__activity=self)
-        return Task.objects.filter(in_this_activity).order_by('tasksequence__sequence')
+    def set_provider_choice(self, provider_service_type):
+        for task in self.tasks:
+            if task.is_choice_task():
+                task.choice = task.choices.get(provider_service_type.pk, None)
 
-    # def tasks(self):
-    #     return Task.objects.filter(tasksequence__activity=self).order_by('tasksequence__sequence')
+    @property
+    def tasks(self):
+        """
+        Provider tasks are decoupled from Provider Choice tasks by design
+        On construction, fill out the valid provider task options in the class
+        """
+        if hasattr(self, '_tasks') and self._tasks:
+            return self._tasks
+
+        self._tasks = Task.objects.filter(tasksequence__activity=self).order_by('tasksequence__sequence')
+        #print(f'> tasks() self._tasks = {self._tasks}')
+        for task in self._tasks:
+            if task.is_choice_task():
+                provider_tasks = ProviderTask.objects.filter(action=task.providerchoicetask.action)
+                task.choices = {pt.provider_service_type.pk: pt for pt in provider_tasks}
+        return self._tasks
 
     action = models.ForeignKey(Action, on_delete=models.CASCADE)
     summary = models.CharField(max_length=200)
@@ -151,12 +169,12 @@ class ProviderChoiceTask(models.Model):
     def __str__(self):
         return f'Engage Service Provider ({self.action.name})'
 
-    def get_provider_task(self, provider, service_type):
+    def get_provider_task(self, provider_service_type):
 
         action_match = Q(providertask__action=self.action)
-        service_type_match = Q(providertask__provider_service_type__service_type=service_type)
-        provider_match = Q(providertask__provider_service_type__provider=provider)
-        tasks = Task.objects.filter(action_match & service_type_match & provider_match)
+        provider_service_type_match = Q(providertask__provider_service_type=provider_service_type)
+        #provider_match = Q(providertask__provider_service_type__provider=provider)
+        tasks = Task.objects.filter(action_match & provider_service_type_match)
         if len(tasks) > 1:
             raise MultipleObjectsReturned(f'One ProviderTask expected for {self.action} {provider} {service_type}')
         if len(tasks) == 0:

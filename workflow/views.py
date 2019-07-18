@@ -29,19 +29,12 @@ def activity(request):
         form = WorkflowForm(request.GET)
         if form.is_valid():
             activity = form.cleaned_data['activity']
-            service_type = form.cleaned_data['service_type']
-            provider = form.cleaned_data['provider']
-            activity_tasks = activity.tasks()
-            tasks = tuple()
-            for task in activity_tasks:
-                if task.is_choice_task():
-                    tasks += (task.providerchoicetask.get_provider_task(provider=provider, service_type=service_type),)
-                else:
-                    tasks += (task,)
-            request.session['service_type'] = service_type.pk
-            request.session['provider'] = provider.pk
+            provider_service_type = form.cleaned_data['provider_service_type']
 
-            context = {'activity': activity, 'tasks': tasks}
+            """ based on the provider and service type choices, refine the task list """
+            activity.set_provider_choice(provider_service_type)
+            context = {'activity': activity,
+                       'provider_service_type': provider_service_type}#, 'tasks': tasks}
             return render(request, 'workflow/activity.html', context)
     # activity = Activity.objects.get(id=activity_id)
     # context = {'activity': activity}

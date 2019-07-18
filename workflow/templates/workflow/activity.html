@@ -10,14 +10,19 @@
     <p>{{ activity.summary }}</p>
     <h3>Tasks:</h3>
     <ol>
-        {% for task in tasks %}
+        {% for task in activity.tasks %}
             <li>
                 {{ task.name }}
                 {% if task.has_instructions %}
                     <p>{{ task.instructions }}</p>
                 {% elif task.is_choice_task %}
-                    <p>Huh, found a choice task</p>
 
+                    {% if task.choice %}
+                        <p>{{ task.choice.instructions }}</p>
+                    {% else %}
+
+                        <p>No tasks found for {{ provider_service_type }} - {{ task.providerchoicetask.action.name }}</p>
+                    {% endif %}
                 {% comment %}
                     <ul>
                         {% for task in task.choices %}
